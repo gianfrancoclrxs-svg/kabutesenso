@@ -1,0 +1,3081 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
+    <title>KabuteSenso — Mushroom Cultivation IoT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ============ TOKENS ============ */
+      :root {
+        --bg: #fdc890;
+        --surface: #fff1de;
+        --surface-2: #ffe3ba;
+        --surface-3: #f3d29c;
+        --line: rgba(61, 37, 0, 0.14);
+        --text: #3d2500;
+        --text-dim: #6b4520;
+        --text-faint: #7a5230;
+        --moss: #1f4636;
+        --moss-dim: #14332a;
+        --teal: #3f7a63;
+        --amber: #b8722c;
+        --danger: #a8402c;
+        --font-display: "Fraunces", serif;
+        --font-body: "Manrope", sans-serif;
+        --font-mono: "IBM Plex Mono", monospace;
+        --radius: 20px;
+        --radius-sm: 12px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background: var(--bg);
+        font-family: var(--font-body);
+        color: var(--text);
+        min-height: 100vh;
+        overflow: hidden;
+      }
+      button {
+        font-family: inherit;
+        border: none;
+        background: none;
+        color: inherit;
+        cursor: pointer;
+      }
+      input {
+        font-family: inherit;
+        color: inherit;
+      }
+      ::selection {
+        background: var(--moss-dim);
+      }
+      ::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+      }
+
+      /* ============ PHONE SHELL ============ */
+      .device {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        background: var(--bg);
+        overflow: hidden;
+        background-image:
+          radial-gradient(
+            circle at 15% 8%,
+            rgba(31, 70, 54, 0.06),
+            transparent 40%
+          ),
+          radial-gradient(
+            circle at 85% 95%,
+            rgba(63, 122, 99, 0.05),
+            transparent 45%
+          );
+      }
+
+      .screen {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(24px) scale(0.98);
+        transition:
+          opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+          transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .screen.active {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateX(0) scale(1);
+        z-index: 10;
+      }
+      .screen.exit-left {
+        transform: translateX(-24px) scale(0.98);
+      }
+
+      /* ============ MYCELIUM SIGNATURE MOTIF ============ */
+      .mycelium-bg {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        opacity: 0.5;
+        pointer-events: none;
+      }
+      .mycelium-bg path {
+        fill: none;
+        stroke: var(--moss);
+        stroke-width: 1;
+        opacity: 0.35;
+        stroke-dasharray: 300;
+        stroke-dashoffset: 300;
+        animation: grow 3.5s ease-out forwards;
+      }
+      @keyframes grow {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+
+      /* ============ LOADING SCREEN ============ */
+      #screen-loading {
+        align-items: center;
+        justify-content: center;
+        background: var(--bg);
+      }
+      .load-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 22px;
+        z-index: 2;
+      }
+      .spore-ring {
+        position: relative;
+        width: 120px;
+        height: 120px;
+      }
+      .spore-ring svg {
+        width: 100%;
+        height: 100%;
+      }
+      .load-logo {
+        width: 200px;
+        height: auto;
+        display: block;
+        animation: fadeUp 0.7s ease forwards;
+      }
+      .spore-dot {
+        animation: pulse 1.8s ease-in-out infinite;
+        transform-origin: center;
+      }
+      .spore-dot:nth-child(2) {
+        animation-delay: 0.3s;
+      }
+      .spore-dot:nth-child(3) {
+        animation-delay: 0.6s;
+      }
+      .spore-dot:nth-child(4) {
+        animation-delay: 0.9s;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.25;
+          r: 3;
+        }
+        50% {
+          opacity: 1;
+          r: 5;
+        }
+      }
+      .load-word {
+        font-family: var(--font-display);
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        opacity: 0;
+        animation: fadeUp 0.8s ease 0.4s forwards;
+      }
+      .load-sub {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        opacity: 0;
+        animation: fadeUp 0.8s ease 0.7s forwards;
+      }
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .load-bar {
+        width: 140px;
+        height: 2px;
+        background: var(--surface-3);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 6px;
+      }
+      .load-bar-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--moss), var(--teal));
+        animation: fill 2.2s ease forwards;
+      }
+      @keyframes fill {
+        to {
+          width: 100%;
+        }
+      }
+
+      /* ============ AUTH SCREENS ============ */
+      .auth-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 28px 28px;
+        z-index: 2;
+      }
+      .auth-hero {
+        padding: 64px 28px 28px;
+      }
+      .auth-mark {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--moss), var(--teal));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+      .auth-mark svg {
+        width: 28px;
+        height: 28px;
+      }
+      .auth-title {
+        font-family: var(--font-display);
+        font-size: 30px;
+        font-weight: 600;
+        line-height: 1.15;
+      }
+      .auth-title span {
+        color: var(--moss);
+      }
+      .auth-sub {
+        color: var(--text-dim);
+        font-size: 14px;
+        margin-top: 8px;
+        line-height: 1.5;
+      }
+
+      .field {
+        margin-bottom: 16px;
+      }
+      .field label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-bottom: 7px;
+        letter-spacing: 0.3px;
+      }
+      .field input {
+        width: 100%;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        padding: 14px 16px;
+        font-size: 14.5px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .field input:focus {
+        border-color: var(--moss-dim);
+      }
+      .field-row {
+        display: flex;
+        gap: 12px;
+      }
+      .field-row .field {
+        flex: 1;
+      }
+
+      .btn-primary {
+        width: 100%;
+        padding: 15px;
+        border-radius: var(--radius-sm);
+        background: var(--moss);
+        color: #fdc890;
+        font-weight: 700;
+        font-size: 14.5px;
+        margin-top: 6px;
+        transition:
+          transform 0.15s,
+          background 0.2s;
+      }
+      .btn-primary:active {
+        transform: scale(0.97);
+      }
+      .btn-ghost {
+        width: 100%;
+        padding: 14px;
+        text-align: center;
+        color: var(--text-dim);
+        font-size: 13.5px;
+        margin-top: 14px;
+      }
+      .btn-ghost b {
+        color: var(--teal);
+        font-weight: 700;
+      }
+      .auth-divider {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 20px 0;
+        color: var(--text-faint);
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .auth-divider::before,
+      .auth-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--line);
+      }
+      .auth-error {
+        display: none;
+        background: rgba(168, 64, 44, 0.12);
+        border: 1px solid rgba(168, 64, 44, 0.4);
+        color: #7a2e1f;
+        font-size: 12.5px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        margin-bottom: 14px;
+      }
+      .auth-error.show {
+        display: block;
+      }
+
+      /* ============ TOP BAR (in-app) ============ */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 28px 22px 6px;
+        z-index: 2;
+      }
+      .topbar-title {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 600;
+      }
+      .topbar-title small {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-faint);
+        font-weight: 400;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-top: 2px;
+      }
+      .back-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .icon-btn {
+        position: relative;
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .notif-dot {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--amber);
+        box-shadow: 0 0 0 2px var(--surface);
+      }
+
+      /* ============ CONTENT SCROLL AREA ============ */
+      .content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 22px 100px;
+        z-index: 2;
+      }
+
+      /* ============ STATS SUMMARY CARD ============ */
+      .stats-summary-card {
+        border-radius: var(--radius);
+        padding: 20px;
+        margin-bottom: 20px;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(
+          150deg,
+          #fff1de 0%,
+          #ffe3ba 55%,
+          #f8d29c 100%
+        );
+        border: 1px solid var(--line);
+      }
+      .stats-summary-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .stats-summary-label {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+      .stats-summary-headline {
+        font-family: var(--font-display);
+        font-size: 21px;
+        font-weight: 600;
+        margin-top: 6px;
+        color: var(--text);
+      }
+      .stats-summary-sub {
+        display: block;
+        font-family: var(--font-body);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-dim);
+        margin-top: 3px;
+      }
+      .stats-summary-badge {
+        flex-shrink: 0;
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: var(--moss);
+        color: #fdf3e2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 600;
+        box-shadow: 0 8px 18px rgba(31, 70, 54, 0.28);
+      }
+      .stats-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+      }
+      .stat-chip {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 6px;
+      }
+      .stat-chip-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .stat-chip b {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .stat-chip span {
+        font-size: 10px;
+        color: var(--text-dim);
+      }
+
+      /* ============ MENU GRID ============ */
+      .section-label {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        margin: 4px 0 12px;
+      }
+      .menu-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .menu-tile {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        padding: 18px 16px;
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        transition:
+          transform 0.15s,
+          border-color 0.2s;
+      }
+      .menu-tile:active {
+        transform: scale(0.96);
+      }
+      .menu-tile .tile-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .menu-tile span {
+        font-size: 13.5px;
+        font-weight: 600;
+      }
+      .menu-tile small {
+        display: block;
+        font-size: 11px;
+        color: var(--text-faint);
+        font-weight: 400;
+        margin-top: 2px;
+      }
+
+      /* ============ BOTTOM NAV ============ */
+      .bottom-nav {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 10px 8px calc(18px + env(safe-area-inset-bottom, 0px));
+        background: rgba(253, 200, 144, 0.88);
+        backdrop-filter: blur(14px);
+        border-top: 1px solid var(--line);
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        color: var(--text-faint);
+        font-size: 10px;
+        flex: 1;
+        padding: 4px 0;
+      }
+      .nav-item svg {
+        width: 20px;
+        height: 20px;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+      }
+      .nav-item.active {
+        color: var(--moss);
+      }
+      .nav-item.active svg {
+        opacity: 1;
+      }
+
+      /* ============ CARDS (generic) ============ */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+      .card-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      /* ============ MONITOR SCREEN ============ */
+      .sensor-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .sensor-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        padding: 16px;
+      }
+      .sensor-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .sensor-label {
+        font-size: 11.5px;
+        color: var(--text-dim);
+      }
+      .sensor-status {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--moss);
+        box-shadow: 0 0 8px var(--moss);
+      }
+      .sensor-status.warn {
+        background: var(--amber);
+        box-shadow: 0 0 8px var(--amber);
+      }
+      .sensor-value {
+        font-family: var(--font-mono);
+        font-size: 26px;
+        font-weight: 500;
+        margin-top: 10px;
+      }
+      .sensor-value sup {
+        font-size: 13px;
+        color: var(--text-faint);
+        font-weight: 400;
+      }
+      .sensor-range {
+        font-size: 10.5px;
+        color: var(--text-faint);
+        margin-top: 6px;
+      }
+
+      /* ============ CONTROL SCREEN ============ */
+      .control-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 4px;
+        border-bottom: 1px solid var(--line);
+      }
+      .control-row:last-child {
+        border-bottom: none;
+      }
+      .control-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .control-name {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .control-sub {
+        font-size: 11.5px;
+        color: var(--text-faint);
+        margin-top: 2px;
+      }
+      .control-info {
+        flex: 1;
+      }
+      .switch {
+        position: relative;
+        width: 46px;
+        height: 26px;
+        border-radius: 20px;
+        background: var(--surface-3);
+        flex-shrink: 0;
+        transition: background 0.25s;
+      }
+      .switch::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--text-dim);
+        transition:
+          transform 0.25s,
+          background 0.25s;
+      }
+      .switch.on {
+        background: var(--moss-dim);
+      }
+      .switch.on::after {
+        transform: translateX(20px);
+        background: #fdeacb;
+      }
+      .slider-wrap {
+        margin-top: 14px;
+      }
+      .slider-wrap input[type="range"] {
+        width: 100%;
+        accent-color: var(--moss);
+      }
+      .mode-toggle {
+        display: flex;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 16px;
+      }
+      .mode-toggle button {
+        flex: 1;
+        padding: 9px;
+        border-radius: 9px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-faint);
+      }
+      .mode-toggle button.active {
+        background: var(--surface-3);
+        color: var(--text);
+      }
+
+      /* ============ CAMERA SCREEN ============ */
+      .cam-frame {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 4/5;
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: #1c1206;
+        border: 1px solid var(--line);
+      }
+      .cam-feed {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            circle at 30% 20%,
+            rgba(31, 70, 54, 0.18),
+            transparent 55%
+          ),
+          radial-gradient(
+            circle at 70% 80%,
+            rgba(63, 122, 99, 0.1),
+            transparent 50%
+          ),
+          #170f04;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .cam-scan {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--moss),
+          transparent
+        );
+        animation: scan 3.4s linear infinite;
+        opacity: 0.7;
+      }
+      @keyframes scan {
+        0% {
+          top: 0%;
+        }
+        100% {
+          top: 100%;
+        }
+      }
+      .cam-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 10.5px;
+        font-family: var(--font-mono);
+      }
+      .cam-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--danger);
+        animation: blink 1.4s ease infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0.25;
+        }
+      }
+      .cam-ts {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: var(--text-dim);
+        background: rgba(0, 0, 0, 0.4);
+        padding: 4px 8px;
+        border-radius: 8px;
+      }
+      .cam-controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .cam-controls button {
+        flex: 1;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        font-size: 12.5px;
+        font-weight: 600;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      .thumb-strip {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+      .thumb {
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        background: linear-gradient(150deg, #3d2500, #1c1206);
+        border: 1px solid var(--line);
+      }
+
+      /* ============ STATISTICS SCREEN ============ */
+      .chart-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        padding: 16px;
+        margin-bottom: 14px;
+      }
+      .chart-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+      .chart-title {
+        font-size: 13.5px;
+        font-weight: 600;
+      }
+      .chart-avg {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--moss);
+      }
+      .chart-range-toggle {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 18px;
+      }
+      .chart-range-toggle button {
+        font-size: 11px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text-faint);
+        border: 1px solid var(--line);
+      }
+      .chart-range-toggle button.active {
+        background: var(--surface-3);
+        color: var(--moss);
+        border-color: var(--moss-dim);
+      }
+      canvas {
+        width: 100%;
+        display: block;
+      }
+
+      /* ============ SETTINGS SCREEN ============ */
+      .profile-card {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 8px 4px 20px;
+      }
+      .avatar {
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--moss), var(--teal));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 20px;
+        color: #fdc890;
+      }
+      .profile-name {
+        font-weight: 700;
+        font-size: 15px;
+      }
+      .profile-email {
+        font-size: 12px;
+        color: var(--text-faint);
+        margin-top: 2px;
+      }
+      .settings-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 4px;
+        border-bottom: 1px solid var(--line);
+      }
+      .settings-row:last-child {
+        border-bottom: none;
+      }
+      .settings-label {
+        font-size: 14px;
+      }
+      .settings-label small {
+        display: block;
+        font-size: 11px;
+        color: var(--text-faint);
+        margin-top: 2px;
+      }
+      .logout-btn {
+        width: 100%;
+        margin-top: 22px;
+        padding: 14px;
+        border-radius: 12px;
+        background: rgba(168, 64, 44, 0.1);
+        color: #7a2e1f;
+        font-weight: 700;
+        font-size: 13.5px;
+        border: 1px solid rgba(168, 64, 44, 0.25);
+      }
+
+      /* ============ MARKETPLACE ============ */
+      .market-topactions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .market-summary {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .market-stat {
+        flex: 1;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        padding: 14px;
+      }
+      .market-stat b {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 20px;
+        font-weight: 600;
+        margin-top: 4px;
+      }
+      .market-stat span {
+        font-size: 11px;
+        color: var(--text-faint);
+      }
+      .market-tab-panel {
+        display: none;
+      }
+      .market-tab-panel.active {
+        display: block;
+      }
+      .product-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .product-card {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        padding: 12px;
+      }
+
+      .product-image {
+        height: 80px;
+        width: 85px;
+      }
+      .product-thumb {
+        width: 80px;
+        height: 80px;
+        border-radius: 11px;
+        flex-shrink: 0;
+        background: linear-gradient(150deg, var(--surface-2), var(--surface-3));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .product-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .product-name {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .product-meta {
+        font-size: 11.5px;
+        color: var(--text-faint);
+        margin-top: 2px;
+      }
+      .product-price {
+        font-family: var(--font-mono);
+        font-size: 14px;
+        color: var(--moss);
+        font-weight: 700;
+        text-align: right;
+        white-space: nowrap;
+      }
+      .stock-pill {
+        font-size: 10px;
+        padding: 3px 9px;
+        border-radius: 20px;
+        background: rgba(31, 70, 54, 0.12);
+        color: var(--moss);
+        display: inline-block;
+        margin-top: 6px;
+        font-weight: 600;
+      }
+      .stock-pill.low {
+        background: rgba(184, 114, 44, 0.15);
+        color: var(--amber);
+      }
+      .stock-pill.out {
+        background: rgba(168, 64, 44, 0.12);
+        color: var(--danger);
+      }
+      .fab-add {
+        position: absolute;
+        right: 20px;
+        bottom: 110px;
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        background: var(--moss);
+        color: #fdc890;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 24px rgba(31, 70, 54, 0.35);
+        z-index: 40;
+      }
+      .order-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+      .order-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .order-id {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        color: var(--text-faint);
+      }
+      .order-buyer {
+        font-size: 13.5px;
+        font-weight: 700;
+        margin-top: 2px;
+      }
+      .order-status {
+        font-size: 10px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+      }
+      .order-status.pending {
+        background: rgba(184, 114, 44, 0.15);
+        color: var(--amber);
+      }
+      .order-status.shipped {
+        background: rgba(63, 122, 99, 0.15);
+        color: var(--teal);
+      }
+      .order-status.completed {
+        background: rgba(31, 70, 54, 0.15);
+        color: var(--moss);
+      }
+      .order-status.cancelled {
+        background: rgba(168, 64, 44, 0.15);
+        color: var(--danger);
+      }
+      .order-items {
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-top: 10px;
+        line-height: 1.5;
+      }
+      .order-foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+      }
+      .order-total {
+        font-family: var(--font-mono);
+        font-weight: 700;
+        font-size: 13.5px;
+      }
+      .order-date {
+        font-size: 11px;
+        color: var(--text-faint);
+      }
+      .order-action {
+        margin-top: 10px;
+        padding: 9px;
+        width: 100%;
+        border-radius: 10px;
+        background: var(--surface-3);
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .photo-upload {
+        width: 100%;
+        aspect-ratio: 16/8;
+        border: 1.5px dashed rgba(61, 37, 0, 0.3);
+        border-radius: var(--radius-sm);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: var(--text-faint);
+        font-size: 12px;
+        margin-bottom: 18px;
+      }
+      .field textarea {
+        width: 100%;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        padding: 14px 16px;
+        font-size: 14.5px;
+        outline: none;
+        resize: none;
+        transition: border-color 0.2s;
+        font-family: inherit;
+      }
+      .field textarea:focus {
+        border-color: var(--moss-dim);
+      }
+      .unit-toggle {
+        display: flex;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 16px;
+      }
+      .unit-toggle button {
+        flex: 1;
+        padding: 9px;
+        border-radius: 9px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-faint);
+      }
+      .unit-toggle button.active {
+        background: var(--surface-3);
+        color: var(--text);
+      }
+
+      /* ============ NOTIFICATION PANEL ============ */
+      .notif-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 200;
+        background: rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s;
+      }
+      .notif-overlay.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .notif-panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 78%;
+        height: 100%;
+        background: var(--bg);
+        border-left: 1px solid var(--line);
+        transform: translateX(100%);
+        transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+      }
+      .notif-overlay.show .notif-panel {
+        transform: translateX(0);
+      }
+      .notif-head {
+        padding: 28px 20px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+      }
+      .notif-head h3 {
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .notif-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 16px;
+      }
+      .notif-item {
+        display: flex;
+        gap: 12px;
+        padding: 14px 4px;
+        border-bottom: 1px solid var(--line);
+      }
+      .notif-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .notif-text {
+        font-size: 12.5px;
+        line-height: 1.4;
+      }
+      .notif-time {
+        font-size: 10.5px;
+        color: var(--text-faint);
+        margin-top: 4px;
+      }
+
+      /* ============ TOAST ============ */
+      .toast {
+        position: absolute;
+        left: 50%;
+        bottom: 100px;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--surface-3);
+        border: 1px solid var(--line);
+        padding: 11px 18px;
+        border-radius: 30px;
+        font-size: 12.5px;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.25s,
+          transform 0.25s;
+        z-index: 300;
+        white-space: nowrap;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+    </style>
+  </head>
+  <body>
+    <div class="device" id="device">
+      <!-- ============ LOADING SCREEN ============ -->
+      <div class="screen active" id="screen-loading">
+        <svg
+          class="mycelium-bg"
+          viewBox="0 0 390 844"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <path
+            d="M195 844 C 180 700, 140 650, 90 600 S 40 500, 60 420"
+            style="animation-delay: 0.1s"
+          />
+          <path
+            d="M195 844 C 210 700, 250 650, 300 600 S 350 500, 330 420"
+            style="animation-delay: 0.3s"
+          />
+          <path
+            d="M195 750 C 195 680, 195 640, 195 560"
+            style="animation-delay: 0.5s"
+          />
+          <path
+            d="M60 420 C 40 380, 70 340, 50 300"
+            style="animation-delay: 0.7s"
+          />
+          <path
+            d="M330 420 C 350 380, 320 340, 340 300"
+            style="animation-delay: 0.9s"
+          />
+        </svg>
+        <div class="load-wrap">
+          <img
+            class="load-logo"
+            src="/assets/KabuteSenso.png"
+            alt="Kabutesenso Logo"
+          />
+          <div class="load-sub">IoT-enabled Smart Mushroom Cultivation</div>
+          <div class="load-bar"><div class="load-bar-fill"></div></div>
+        </div>
+      </div>
+
+      <!-- ============ LOGIN SCREEN ============ -->
+      <div class="screen" id="screen-login">
+        <div class="auth-scroll">
+          <div class="auth-hero">
+            <div class="auth-mark">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M4 12c0-4.4 3.6-8 8-8s8 3.6 8 8"
+                  stroke="#fdc890"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+                <path
+                  d="M12 12v8M8 20h8"
+                  stroke="#fdc890"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+            <div class="auth-title">
+              Welcome back to<br /><span>KabuteSenso.</span>
+            </div>
+            <div class="auth-sub">
+              Sign in to monitor and control your mushroom cultivation tents.
+            </div>
+          </div>
+          <div class="auth-error" id="login-error">
+            Incorrect email or password. Try again.
+          </div>
+          <div class="field">
+            <label>Email</label
+            ><input
+              type="email"
+              id="login-email"
+              placeholder="you@farmmail.com"
+              value="grower@kabutesenso.io"
+            />
+          </div>
+          <div class="field">
+            <label>Password</label
+            ><input
+              type="password"
+              id="login-pass"
+              placeholder="••••••••"
+              value="mycelium123"
+            />
+          </div>
+          <button class="btn-primary" onclick="handleLogin()">Log In</button>
+          <div class="auth-divider">or</div>
+          <button
+            class="btn-primary"
+            style="background: var(--surface-3); color: var(--text)"
+            onclick="goto('screen-signup')"
+          >
+            Create an account
+          </button>
+          <div class="btn-ghost">
+            New grower?
+            <b onclick="goto('screen-signup')" style="cursor: pointer"
+              >Sign up free</b
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SIGN UP SCREEN ============ -->
+      <div class="screen" id="screen-signup">
+        <div class="auth-scroll">
+          <div class="auth-hero" style="padding-top: 28px">
+            <button
+              class="back-btn"
+              onclick="goto('screen-login')"
+              style="margin-bottom: 20px"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M15 18l-6-6 6-6"
+                  stroke="#3d2500"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <div class="auth-title">
+              Set up your<br /><span>growing space.</span>
+            </div>
+            <div class="auth-sub">
+              A few details and your tent will start reporting live data.
+            </div>
+          </div>
+          <div class="field">
+            <label>Full name</label
+            ><input type="text" placeholder="Juan Dela Cruz" />
+          </div>
+          <div class="field">
+            <label>Farm / tent name</label
+            ><input type="text" placeholder="Incubator A — Oyster Mushrooms" />
+          </div>
+          <div class="field">
+            <label>Email</label
+            ><input type="email" placeholder="you@farmmail.com" />
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Password</label
+              ><input type="password" placeholder="••••••••" />
+            </div>
+            <div class="field">
+              <label>Confirm</label
+              ><input type="password" placeholder="••••••••" />
+            </div>
+          </div>
+          <button class="btn-primary" onclick="handleSignup()">
+            Create Account
+          </button>
+          <div class="btn-ghost">
+            Already growing with us?
+            <b onclick="goto('screen-login')" style="cursor: pointer">Log in</b>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ DASHBOARD ============ -->
+      <div class="screen" id="screen-dashboard">
+        <div class="topbar">
+          <div class="topbar-title">
+            Good day, Juan<small>Incubator A — Oyster Mushrooms</small>
+          </div>
+          <button class="icon-btn" onclick="openNotif()">
+            <span class="notif-dot"></span
+            ><svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"
+                stroke="#3d2500"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M13.7 21a2 2 0 01-3.4 0"
+                stroke="#3d2500"
+                stroke-width="1.6"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="content">
+          <div class="stats-summary-card">
+            <div class="stats-summary-top">
+              <div>
+                <div class="stats-summary-label">Incubator A Snapshot</div>
+                <div class="stats-summary-headline">
+                  Conditions on track
+                  <span class="stats-summary-sub"
+                    >Day 14 of flush · updated 2m ago</span
+                  >
+                </div>
+              </div>
+              <div class="stats-summary-badge">98%</div>
+            </div>
+            <div class="stats-summary-grid">
+              <div class="stat-chip">
+                <div
+                  class="stat-chip-icon"
+                  style="background: rgba(168, 64, 44, 0.15)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M10 14.76V5a2 2 0 114 0v9.76a4 4 0 11-4 0z"
+                      stroke="#a8402c"
+                      stroke-width="1.6"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </div>
+                <b>24.2°C</b>
+                <span>Temp</span>
+              </div>
+              <div class="stat-chip">
+                <div
+                  class="stat-chip-icon"
+                  style="background: rgba(63, 122, 99, 0.15)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 3c-3 4-6 7-6 11a6 6 0 0012 0c0-4-3-7-6-11z"
+                      stroke="#3f7a63"
+                      stroke-width="1.6"
+                    />
+                  </svg>
+                </div>
+                <b>87%</b>
+                <span>Humidity</span>
+              </div>
+              <div class="stat-chip">
+                <div
+                  class="stat-chip-icon"
+                  style="background: rgba(184, 114, 44, 0.15)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M4 17c1.5 1.5 3 0 4.5 1.5S12 20 12 20s2-1 3.5-1.5S19 20 20 19"
+                      stroke="#b8722c"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                    />
+                    <path
+                      d="M6 12c1.4 0 1.4-2 2.8-2s1.4 2 2.8 2 1.4-2 2.8-2 1.4 2 2.8 2"
+                      stroke="#b8722c"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </div>
+                <b>780 ppm</b>
+                <span>CO₂</span>
+              </div>
+              <div class="stat-chip">
+                <div
+                  class="stat-chip-icon"
+                  style="background: rgba(31, 70, 54, 0.15)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M3 12h4l2-8 4 16 2-8h6"
+                      stroke="#1f4636"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </div>
+                <b>+0.6</b>
+                <span>Growth rate</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-label">Grow Room Controls</div>
+          <div class="menu-grid">
+            <button class="menu-tile" onclick="goto('screen-monitor')">
+              <div class="tile-icon" style="background: rgba(31, 70, 54, 0.15)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M3 12h4l2-8 4 16 2-8h6"
+                    stroke="#1f4636"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <span>Monitor<small>Live sensor data</small></span>
+            </button>
+            <button class="menu-tile" onclick="goto('screen-control')">
+              <div
+                class="tile-icon"
+                style="background: rgba(63, 122, 99, 0.15)"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 6h16M4 12h10M4 18h13"
+                    stroke="#3f7a63"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  />
+                  <circle cx="17" cy="6" r="2" fill="#3f7a63" />
+                  <circle cx="13" cy="12" r="2" fill="#3f7a63" />
+                  <circle cx="15" cy="18" r="2" fill="#3f7a63" />
+                </svg>
+              </div>
+              <span>Control<small>Fans · mist · light</small></span>
+            </button>
+            <button class="menu-tile" onclick="goto('screen-camera')">
+              <div
+                class="tile-icon"
+                style="background: rgba(184, 114, 44, 0.15)"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 8a2 2 0 012-2h2l1-2h6l1 2h2a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V8z"
+                    stroke="#b8722c"
+                    stroke-width="1.8"
+                  />
+                  <circle
+                    cx="12"
+                    cy="13"
+                    r="3.2"
+                    stroke="#b8722c"
+                    stroke-width="1.8"
+                  />
+                </svg>
+              </div>
+              <span>Camera<small>Tent live view</small></span>
+            </button>
+            <button class="menu-tile" onclick="goto('screen-stats')">
+              <div
+                class="tile-icon"
+                style="background: rgba(168, 64, 44, 0.15)"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect
+                    x="4"
+                    y="12"
+                    width="3.5"
+                    height="8"
+                    rx="1"
+                    fill="#a8402c"
+                  />
+                  <rect
+                    x="10.2"
+                    y="7"
+                    width="3.5"
+                    height="13"
+                    rx="1"
+                    fill="#a8402c"
+                  />
+                  <rect
+                    x="16.5"
+                    y="3"
+                    width="3.5"
+                    height="17"
+                    rx="1"
+                    fill="#a8402c"
+                  />
+                </svg>
+              </div>
+              <span>Statistics<small>Trends & graphs</small></span>
+            </button>
+          </div>
+
+          <div class="section-label" style="margin-top: 18px">Marketplace</div>
+          <div class="menu-grid" style="grid-template-columns: 1fr">
+            <button
+              class="menu-tile"
+              style="flex-direction: row; align-items: center; gap: 12px"
+              onclick="goto('screen-marketplace')"
+            >
+              <div class="tile-icon" style="background: rgba(31, 70, 54, 0.15)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 9l1.2-4.4A1 1 0 016.2 4h11.6a1 1 0 011 .6L20 9"
+                    stroke="#1f4636"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M4 9h16v9a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 18V9z"
+                    stroke="#1f4636"
+                    stroke-width="1.7"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M9 13.5a3 3 0 006 0"
+                    stroke="#1f4636"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <span style="flex: 1; text-align: left"
+                >Marketplace<small>Sell harvests · manage orders</small></span
+              >
+            </button>
+          </div>
+
+          <div class="section-label" style="margin-top: 18px">System</div>
+          <div class="menu-grid" style="grid-template-columns: 1fr">
+            <button
+              class="menu-tile"
+              style="flex-direction: row; align-items: center; gap: 12px"
+              onclick="goto('screen-settings')"
+            >
+              <div class="tile-icon" style="background: var(--surface-3)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="3"
+                    stroke="#3d2500"
+                    stroke-width="1.7"
+                  />
+                  <path
+                    d="M19 12a7 7 0 00-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 00-2-1.2L14 3h-4l-.6 2.6a7 7 0 00-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2L10 21h4l.6-2.6a7 7 0 002-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"
+                    stroke="#3d2500"
+                    stroke-width="1.3"
+                  />
+                </svg>
+              </div>
+              <span style="flex: 1; text-align: left"
+                >Settings<small>Account · alerts · devices</small></span
+              >
+            </button>
+          </div>
+        </div>
+        <div class="bottom-nav" id="nav-dashboard"></div>
+      </div>
+
+      <!-- ============ MONITOR SCREEN ============ -->
+      <div class="screen" id="screen-monitor">
+        <div class="topbar">
+          <button class="back-btn" onclick="goto('screen-dashboard')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M15 18l-6-6 6-6"
+                stroke="#3d2500"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <div class="topbar-title" style="font-size: 19px">Monitor</div>
+          <button class="icon-btn" onclick="openNotif()">
+            <span class="notif-dot"></span
+            ><svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"
+                stroke="#3d2500"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="content">
+          <div class="section-label">Fruiting Chamber · Live</div>
+          <div class="sensor-grid">
+            <div class="sensor-card">
+              <div class="sensor-top">
+                <span class="sensor-label">Temperature</span
+                ><span class="sensor-status"></span>
+              </div>
+              <div class="sensor-value">24.6<sup>°C</sup></div>
+              <div class="sensor-range">Ideal 20–26°C</div>
+            </div>
+            <div class="sensor-card">
+              <div class="sensor-top">
+                <span class="sensor-label">Humidity</span
+                ><span class="sensor-status"></span>
+              </div>
+              <div class="sensor-value">88<sup>%RH</sup></div>
+              <div class="sensor-range">Ideal 85–95%</div>
+            </div>
+            <div class="sensor-card">
+              <div class="sensor-top">
+                <span class="sensor-label">CO₂ Level</span
+                ><span class="sensor-status warn"></span>
+              </div>
+              <div class="sensor-value">920<sup>ppm</sup></div>
+              <div class="sensor-range">Ideal &lt;800ppm</div>
+            </div>
+            <div class="sensor-card">
+              <div class="sensor-top">
+                <span class="sensor-label">Substrate</span
+                ><span class="sensor-status"></span>
+              </div>
+              <div class="sensor-value">61<sup>%moist</sup></div>
+              <div class="sensor-range">Ideal 55–65%</div>
+            </div>
+            <div class="sensor-card">
+              <div class="sensor-top">
+                <span class="sensor-label">Light</span
+                ><span class="sensor-status"></span>
+              </div>
+              <div class="sensor-value">340<sup>lux</sup></div>
+              <div class="sensor-range">Ideal 200–500</div>
+            </div>
+            <div class="sensor-card">
+              <div class="sensor-top">
+                <span class="sensor-label">Air Flow</span
+                ><span class="sensor-status"></span>
+              </div>
+              <div class="sensor-value">Active<sup></sup></div>
+              <div class="sensor-range">Exhaust fan on</div>
+            </div>
+          </div>
+          <div class="section-label" style="margin-top: 18px">Advisory</div>
+          <div class="card">
+            <div class="card-row">
+              <span style="font-size: 13px; font-weight: 600"
+                >CO₂ trending high</span
+              ><span style="font-size: 11px; color: var(--amber)"
+                >Action needed</span
+              >
+            </div>
+            <div
+              style="
+                font-size: 12px;
+                color: var(--text-dim);
+                margin-top: 6px;
+                line-height: 1.5;
+              "
+            >
+              CO₂ has been above 900ppm for 22 minutes. Consider increasing
+              exhaust fan duration in Control.
+            </div>
+          </div>
+        </div>
+        <div class="bottom-nav" id="nav-monitor"></div>
+      </div>
+
+      <!-- ============ CONTROL SCREEN ============ -->
+      <div class="screen" id="screen-control">
+        <div class="topbar">
+          <button class="back-btn" onclick="goto('screen-dashboard')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M15 18l-6-6 6-6"
+                stroke="#3d2500"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <div class="topbar-title" style="font-size: 19px">Control</div>
+          <button class="icon-btn" onclick="openNotif()">
+            <span class="notif-dot"></span
+            ><svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"
+                stroke="#3d2500"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="content">
+          <div class="mode-toggle">
+            <button class="active" onclick="setMode(this)">Automatic</button>
+            <button onclick="setMode(this)">Manual</button>
+          </div>
+          <div class="card" style="padding: 6px 12px">
+            <div class="control-row">
+              <div
+                class="control-icon"
+                style="background: rgba(63, 122, 99, 0.15)"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 12c2-3 6-3 8 0s-2 6-8 6c0-4 0-4 0-6z"
+                    stroke="#3f7a63"
+                    stroke-width="1.6"
+                  />
+                  <path
+                    d="M12 12c-2-3-6-3-8 0s2 6 8 6c0-4 0-4 0-6z"
+                    stroke="#3f7a63"
+                    stroke-width="1.6"
+                  />
+                </svg>
+              </div>
+              <div class="control-info">
+                <div class="control-name">Exhaust Fan</div>
+                <div class="control-sub">Cycling every 15 min</div>
+              </div>
+              <div
+                class="switch on"
+                onclick="toggleSwitch(this, 'Exhaust Fan')"
+              ></div>
+            </div>
+            <div class="control-row">
+              <div
+                class="control-icon"
+                style="background: rgba(31, 70, 54, 0.15)"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 3c-2 3-2 5 0 7s2 4 0 7"
+                    stroke="#1f4636"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M8 6c1 2 1 3 0 5"
+                    stroke="#1f4636"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M16 6c-1 2-1 3 0 5"
+                    stroke="#1f4636"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <div class="control-info">
+                <div class="control-name">Misting System</div>
+                <div class="control-sub">Maintains 85–95% RH</div>
+              </div>
+              <div
+                class="switch on"
+                onclick="toggleSwitch(this, 'Misting System')"
+              ></div>
+            </div>
+            <div class="control-row">
+              <div
+                class="control-icon"
+                style="background: rgba(184, 114, 44, 0.15)"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="4"
+                    stroke="#b8722c"
+                    stroke-width="1.6"
+                  />
+                  <path
+                    d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"
+                    stroke="#b8722c"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <div class="control-info">
+                <div class="control-name">Grow Light</div>
+                <div class="control-sub">On 12h / Off 12h schedule</div>
+              </div>
+              <div
+                class="switch"
+                onclick="toggleSwitch(this, 'Grow Light')"
+              ></div>
+            </div>
+            <div class="control-row">
+              <div
+                class="control-icon"
+                style="background: rgba(168, 64, 44, 0.15)"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 2v6M12 22a6 6 0 006-6c0-4-6-9-6-9s-6 5-6 9a6 6 0 006 6z"
+                    stroke="#a8402c"
+                    stroke-width="1.6"
+                  />
+                </svg>
+              </div>
+              <div class="control-info">
+                <div class="control-name">Heater</div>
+                <div class="control-sub">Standby — temp within range</div>
+              </div>
+              <div class="switch" onclick="toggleSwitch(this, 'Heater')"></div>
+            </div>
+          </div>
+          <div class="section-label" style="margin-top: 18px">Fan Speed</div>
+          <div class="card">
+            <div class="slider-wrap">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value="55"
+                oninput="
+                  document.getElementById('fanpct').innerText = this.value + '%'
+                "
+              />
+              <div class="card-row" style="margin-top: 8px">
+                <span style="font-size: 11px; color: var(--text-faint)"
+                  >Manual override</span
+                ><span
+                  style="
+                    font-family: var(--font-mono);
+                    font-size: 12px;
+                    color: var(--teal);
+                  "
+                  id="fanpct"
+                  >55%</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-nav" id="nav-control"></div>
+      </div>
+
+      <!-- ============ CAMERA SCREEN ============ -->
+      <div class="screen" id="screen-camera">
+        <div class="topbar">
+          <button class="back-btn" onclick="goto('screen-dashboard')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M15 18l-6-6 6-6"
+                stroke="#3d2500"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <div class="topbar-title" style="font-size: 19px">Camera View</div>
+          <button class="icon-btn" onclick="openNotif()">
+            <span class="notif-dot"></span
+            ><svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"
+                stroke="#3d2500"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="content">
+          <div class="cam-frame">
+            <div class="cam-feed">
+              <svg
+                width="70"
+                height="70"
+                viewBox="0 0 24 24"
+                fill="none"
+                opacity="0.4"
+              >
+                <path
+                  d="M12 3c-3 4-6 7-6 11a6 6 0 0012 0c0-4-3-7-6-11z"
+                  stroke="#1f4636"
+                  stroke-width="1.4"
+                />
+              </svg>
+            </div>
+            <div class="cam-scan"></div>
+            <div class="cam-badge">
+              <span class="cam-dot"></span> LIVE · Incubator A
+            </div>
+            <div class="cam-ts" id="cam-time">--:--:--</div>
+          </div>
+          <div class="cam-controls">
+            <button onclick="showToast('Snapshot saved to gallery')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M4 8a2 2 0 012-2h2l1-2h6l1 2h2a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V8z"
+                  stroke="#3d2500"
+                  stroke-width="1.5"
+                />
+                <circle
+                  cx="12"
+                  cy="13"
+                  r="3"
+                  stroke="#3d2500"
+                  stroke-width="1.5"
+                /></svg
+              >Snapshot
+            </button>
+            <button onclick="showToast('Timelapse recording started')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                  stroke="#3d2500"
+                  stroke-width="1.5"
+                />
+                <path
+                  d="M12 7v5l3 2"
+                  stroke="#3d2500"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                /></svg
+              >Timelapse
+            </button>
+            <button onclick="showToast('Switched to Tent B feed')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M4 7l6 5-6 5V7z"
+                  stroke="#3d2500"
+                  stroke-width="1.5"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M14 7l6 5-6 5V7z"
+                  stroke="#3d2500"
+                  stroke-width="1.5"
+                  stroke-linejoin="round"
+                /></svg
+              >Switch
+            </button>
+          </div>
+          <div class="section-label" style="margin-top: 18px">
+            Recent Captures
+          </div>
+          <div class="thumb-strip">
+            <div class="thumb"></div>
+            <div class="thumb"></div>
+            <div class="thumb"></div>
+            <div class="thumb"></div>
+            <div class="thumb"></div>
+          </div>
+        </div>
+        <div class="bottom-nav" id="nav-camera"></div>
+      </div>
+
+      <!-- ============ STATISTICS SCREEN ============ -->
+      <div class="screen" id="screen-stats">
+        <div class="topbar">
+          <button class="back-btn" onclick="goto('screen-dashboard')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M15 18l-6-6 6-6"
+                stroke="#3d2500"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <div class="topbar-title" style="font-size: 19px">Statistics</div>
+          <button class="icon-btn" onclick="openNotif()">
+            <span class="notif-dot"></span
+            ><svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"
+                stroke="#3d2500"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="content">
+          <div class="chart-range-toggle">
+            <button class="active" onclick="setRange(this)">24H</button>
+            <button onclick="setRange(this)">7D</button>
+            <button onclick="setRange(this)">30D</button>
+          </div>
+          <div class="chart-card">
+            <div class="chart-head">
+              <span class="chart-title">Temperature (°C)</span
+              ><span class="chart-avg">avg 24.1°</span>
+            </div>
+            <canvas id="chart-temp" height="140"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-head">
+              <span class="chart-title">Humidity (%RH)</span
+              ><span class="chart-avg">avg 87%</span>
+            </div>
+            <canvas id="chart-humid" height="140"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-head">
+              <span class="chart-title">CO₂ (ppm)</span
+              ><span class="chart-avg">avg 780</span>
+            </div>
+            <canvas id="chart-co2" height="140"></canvas>
+          </div>
+        </div>
+        <div class="bottom-nav" id="nav-stats"></div>
+      </div>
+
+      <!-- ============ SETTINGS SCREEN ============ -->
+      <div class="screen" id="screen-settings">
+        <div class="topbar">
+          <button class="back-btn" onclick="goto('screen-dashboard')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M15 18l-6-6 6-6"
+                stroke="#3d2500"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <div class="topbar-title" style="font-size: 19px">Settings</div>
+          <button class="icon-btn" onclick="openNotif()">
+            <span class="notif-dot"></span
+            ><svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"
+                stroke="#3d2500"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+        <div class="content">
+          <div class="profile-card">
+            <div class="avatar">JD</div>
+            <div>
+              <div class="profile-name">Juan Dela Cruz</div>
+              <div class="profile-email">grower@kabutesenso.io</div>
+            </div>
+          </div>
+          <div class="section-label">Devices</div>
+          <div class="card">
+            <div class="settings-row">
+              <div class="settings-label">
+                Incubator A Node<small>ESP32 · online</small>
+              </div>
+              <span class="sensor-status"></span>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label">
+                Camera Module<small>Wi-Fi · connected</small>
+              </div>
+              <span class="sensor-status"></span>
+            </div>
+          </div>
+          <div class="section-label" style="margin-top: 16px">Preferences</div>
+          <div class="card">
+            <div class="settings-row">
+              <div class="settings-label">
+                Push notifications<small
+                  >Alerts for out-of-range readings</small
+                >
+              </div>
+              <div class="switch on" onclick="toggleSwitch(this)"></div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label">
+                Auto climate control<small>Let the system self-regulate</small>
+              </div>
+              <div class="switch on" onclick="toggleSwitch(this)"></div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label">
+                Dark mode<small>Use a darker theme in low light</small>
+              </div>
+              <div class="switch" onclick="toggleSwitch(this)"></div>
+            </div>
+          </div>
+          <div class="section-label" style="margin-top: 16px">Account</div>
+          <div class="card">
+            <div class="settings-row">
+              <div class="settings-label">Edit profile</div>
+              <span>›</span>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label">Change password</div>
+              <span>›</span>
+            </div>
+            <div class="settings-row">
+              <div class="settings-label">Export sensor data</div>
+              <span>›</span>
+            </div>
+          </div>
+          <button class="logout-btn" onclick="goto('screen-login')">
+            Log Out
+          </button>
+        </div>
+        <div class="bottom-nav" id="nav-settings"></div>
+      </div>
+
+      <!-- ============ MARKETPLACE SCREEN ============ -->
+      <div class="screen" id="screen-marketplace">
+        <div class="topbar">
+          <button class="back-btn" onclick="goto('screen-dashboard')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M15 18l-6-6 6-6"
+                stroke="#3d2500"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <div class="topbar-title" style="font-size: 19px">Marketplace</div>
+          <div class="market-topactions">
+            <button
+              class="icon-btn"
+              onclick="goto('screen-product-add')"
+              aria-label="Add product"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="#3d2500"
+                  stroke-width="1.9"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+            <button class="icon-btn" onclick="openNotif()">
+              <span class="notif-dot"></span
+              ><svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"
+                  stroke="#3d2500"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="content">
+          <div class="market-summary">
+            <div class="market-stat">
+              <span>Listed products</span><b id="market-stat-products">4</b>
+            </div>
+            <div class="market-stat">
+              <span>Open orders</span><b id="market-stat-orders">2</b>
+            </div>
+            <div class="market-stat"><span>This month</span><b>₱6,240</b></div>
+          </div>
+
+          <div class="mode-toggle">
+            <button class="active" onclick="setMarketTab(this, 'products')">
+              My Products
+            </button>
+            <button onclick="setMarketTab(this, 'orders')">Orders</button>
+          </div>
+
+          <div class="market-tab-panel active" id="market-tab-products">
+            <div class="product-list" id="product-list">
+              <div class="product-card">
+                <div class="product-thumb">
+                  <img
+                    class="product-image"
+                    src="/assets/mushroom.jpg"
+                    alt="Fresh Oyster Mushrooms"
+                  />
+                </div>
+                <div class="product-info">
+                  <div class="product-name">Fresh Oyster Mushrooms</div>
+                  <div class="product-meta">Incubator A · 250g pack</div>
+                  <span class="stock-pill">32 in stock</span>
+                </div>
+                <div class="product-price">₱120</div>
+              </div>
+              <div class="product-card">
+                <div class="product-thumb">
+                  <img
+                    class="product-image"
+                    src="/assets/mushroom.jpg"
+                    alt="Dried Oyster Mushrooms"
+                  />
+                </div>
+                <div class="product-info">
+                  <div class="product-name">Dried Oyster Mushrooms</div>
+                  <div class="product-meta">Incubator A · 100g pack</div>
+                  <span class="stock-pill low">6 in stock</span>
+                </div>
+                <div class="product-price">₱180</div>
+              </div>
+              <div class="product-card">
+                <div class="product-thumb">
+                  <img
+                    class="product-image"
+                    src="/assets/mushroom.jpg"
+                    alt="Mushroom Grow Kit"
+                  />
+                </div>
+                <div class="product-info">
+                  <div class="product-name">Mushroom Grow Kit</div>
+                  <div class="product-meta">DIY starter · 1 unit</div>
+                  <span class="stock-pill">14 in stock</span>
+                </div>
+                <div class="product-price">₱450</div>
+              </div>
+              <div class="product-card">
+                <div class="product-thumb">
+                  <img
+                    class="product-image"
+                    src="/assets/mushroom.jpg"
+                    alt="Mushroom Spawn Bag"
+                  />
+                </div>
+                <div class="product-info">
+                  <div class="product-name">Mushroom Spawn Bag</div>
+                  <div class="product-meta">Substrate ready · 1kg</div>
+                  <span class="stock-pill out">Out of stock</span>
+                </div>
+                <div class="product-price">₱95</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="market-tab-panel" id="market-tab-orders">
+            <div class="order-card">
+              <div class="order-top">
+                <div>
+                  <div class="order-id">#ORD-1042</div>
+                  <div class="order-buyer">Maria Santos</div>
+                </div>
+                <span class="order-status pending">Pending</span>
+              </div>
+              <div class="order-items">
+                2x Fresh Oyster Mushrooms (250g)<br />1x Mushroom Grow Kit
+              </div>
+              <div class="order-foot">
+                <span class="order-date">Today, 9:14 AM</span
+                ><span class="order-total">₱690</span>
+              </div>
+              <button class="order-action" onclick="markShipped(this)">
+                Mark as Shipped
+              </button>
+            </div>
+            <div class="order-card">
+              <div class="order-top">
+                <div>
+                  <div class="order-id">#ORD-1041</div>
+                  <div class="order-buyer">Ramon Cruz</div>
+                </div>
+                <span class="order-status pending">Pending</span>
+              </div>
+              <div class="order-items">3x Dried Oyster Mushrooms (100g)</div>
+              <div class="order-foot">
+                <span class="order-date">Yesterday, 4:52 PM</span
+                ><span class="order-total">₱540</span>
+              </div>
+              <button class="order-action" onclick="markShipped(this)">
+                Mark as Shipped
+              </button>
+            </div>
+            <div class="order-card">
+              <div class="order-top">
+                <div>
+                  <div class="order-id">#ORD-1039</div>
+                  <div class="order-buyer">Liza Ramos</div>
+                </div>
+                <span class="order-status shipped">Shipped</span>
+              </div>
+              <div class="order-items">1x Mushroom Grow Kit</div>
+              <div class="order-foot">
+                <span class="order-date">Jul 24, 11:03 AM</span
+                ><span class="order-total">₱450</span>
+              </div>
+            </div>
+            <div class="order-card">
+              <div class="order-top">
+                <div>
+                  <div class="order-id">#ORD-1035</div>
+                  <div class="order-buyer">Kevin Uy</div>
+                </div>
+                <span class="order-status completed">Completed</span>
+              </div>
+              <div class="order-items">4x Fresh Oyster Mushrooms (250g)</div>
+              <div class="order-foot">
+                <span class="order-date">Jul 21, 2:30 PM</span
+                ><span class="order-total">₱480</span>
+              </div>
+            </div>
+            <div class="order-card">
+              <div class="order-top">
+                <div>
+                  <div class="order-id">#ORD-1030</div>
+                  <div class="order-buyer">Grace Tan</div>
+                </div>
+                <span class="order-status cancelled">Cancelled</span>
+              </div>
+              <div class="order-items">2x Mushroom Spawn Bag</div>
+              <div class="order-foot">
+                <span class="order-date">Jul 18, 8:47 AM</span
+                ><span class="order-total">₱190</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button
+          class="fab-add"
+          onclick="goto('screen-product-add')"
+          aria-label="Add product"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 5v14M5 12h14"
+              stroke="#fdc890"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+        <div class="bottom-nav" id="nav-marketplace"></div>
+      </div>
+
+      <!-- ============ ADD PRODUCT SCREEN ============ -->
+      <div class="screen" id="screen-product-add">
+        <div class="topbar">
+          <button class="back-btn" onclick="goto('screen-marketplace')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M15 18l-6-6 6-6"
+                stroke="#3d2500"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <div class="topbar-title" style="font-size: 19px">Add Product</div>
+          <div style="width: 38px"></div>
+        </div>
+        <div class="auth-scroll" style="padding-top: 6px">
+          <div class="photo-upload">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4 8a2 2 0 012-2h2l1-2h6l1 2h2a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V8z"
+                stroke="#9c7548"
+                stroke-width="1.6"
+              />
+              <circle
+                cx="12"
+                cy="13"
+                r="3.2"
+                stroke="#9c7548"
+                stroke-width="1.6"
+              />
+            </svg>
+            Add product photo
+          </div>
+          <div class="field">
+            <label>Product name</label
+            ><input
+              type="text"
+              id="pa-name"
+              placeholder="e.g. Fresh Oyster Mushrooms"
+            />
+          </div>
+          <div class="field">
+            <label>Category</label
+            ><input
+              type="text"
+              id="pa-category"
+              placeholder="e.g. Fresh produce"
+            />
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Price (₱)</label
+              ><input type="number" id="pa-price" placeholder="120" />
+            </div>
+            <div class="field">
+              <label>Stock quantity</label
+              ><input type="number" id="pa-stock" placeholder="32" />
+            </div>
+          </div>
+          <label
+            style="
+              display: block;
+              font-size: 12px;
+              color: var(--text-dim);
+              margin-bottom: 7px;
+              letter-spacing: 0.3px;
+            "
+            >Sold per</label
+          >
+          <div class="unit-toggle" id="pa-unit-toggle">
+            <button class="active" onclick="setUnit(this)">Pack</button>
+            <button onclick="setUnit(this)">Kilo</button>
+            <button onclick="setUnit(this)">Piece</button>
+          </div>
+          <div class="field">
+            <label>Description</label
+            ><textarea
+              id="pa-desc"
+              rows="4"
+              placeholder="Describe your product — freshness, harvest date, etc."
+            ></textarea>
+          </div>
+          <button class="btn-primary" onclick="handleAddProduct()">
+            List Product
+          </button>
+        </div>
+      </div>
+
+      <!-- ============ NOTIFICATION PANEL ============ -->
+      <div
+        class="notif-overlay"
+        id="notif-overlay"
+        onclick="closeNotifOutside(event)"
+      >
+        <div class="notif-panel">
+          <div class="notif-head">
+            <h3>Notifications</h3>
+            <button onclick="closeNotif()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M6 6l12 12M18 6L6 18"
+                  stroke="#3d2500"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+          </div>
+          <div class="notif-list">
+            <div class="notif-item">
+              <div
+                class="notif-icon"
+                style="background: rgba(184, 114, 44, 0.15)"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 9v4M12 17h.01"
+                    stroke="#b8722c"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M10.3 3.9L2.6 18a1.5 1.5 0 001.3 2.2h16.2a1.5 1.5 0 001.3-2.2L13.7 3.9a1.5 1.5 0 00-2.6 0z"
+                    stroke="#b8722c"
+                    stroke-width="1.6"
+                  />
+                </svg>
+              </div>
+              <div>
+                <div class="notif-text">
+                  CO₂ level in Incubator A has exceeded 900ppm for over 20 minutes.
+                </div>
+                <div class="notif-time">6 min ago</div>
+              </div>
+            </div>
+            <div class="notif-item">
+              <div
+                class="notif-icon"
+                style="background: rgba(31, 70, 54, 0.15)"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 12c2-3 6-3 8 0s-2 6-8 6c0-4 0-4 0-6z"
+                    stroke="#1f4636"
+                    stroke-width="1.5"
+                  />
+                </svg>
+              </div>
+              <div>
+                <div class="notif-text">
+                  Misting system ran an automatic cycle — humidity restored to
+                  88%.
+                </div>
+                <div class="notif-time">41 min ago</div>
+              </div>
+            </div>
+            <div class="notif-item">
+              <div
+                class="notif-icon"
+                style="background: rgba(63, 122, 99, 0.15)"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 8a2 2 0 012-2h2l1-2h6l1 2h2a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V8z"
+                    stroke="#3f7a63"
+                    stroke-width="1.5"
+                  />
+                </svg>
+              </div>
+              <div>
+                <div class="notif-text">
+                  Daily timelapse snapshot captured for Incubator A.
+                </div>
+                <div class="notif-time">2 hr ago</div>
+              </div>
+            </div>
+            <div class="notif-item">
+              <div
+                class="notif-icon"
+                style="background: rgba(168, 64, 44, 0.15)"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 2v6M12 22a6 6 0 006-6c0-4-6-9-6-9s-6 5-6 9a6 6 0 006 6z"
+                    stroke="#a8402c"
+                    stroke-width="1.5"
+                  />
+                </svg>
+              </div>
+              <div>
+                <div class="notif-text">
+                  Temperature briefly dropped to 19.4°C overnight — heater
+                  engaged.
+                </div>
+                <div class="notif-time">Yesterday</div>
+              </div>
+            </div>
+            <div class="notif-item">
+              <div class="notif-icon" style="background: var(--surface-3)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="9"
+                    stroke="#3d2500"
+                    stroke-width="1.5"
+                  />
+                  <path
+                    d="M9 12l2 2 4-4"
+                    stroke="#3d2500"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <div>
+                <div class="notif-text">
+                  Incubator A Node firmware updated successfully.
+                </div>
+                <div class="notif-time">2 days ago</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </div>
+
+    <script>
+      /* ============ NAVIGATION ============ */
+      const navScreens = [
+        "screen-dashboard",
+        "screen-monitor",
+        "screen-control",
+        "screen-camera",
+        "screen-stats",
+        "screen-marketplace",
+        "screen-settings",
+      ];
+      const navMeta = {
+        "screen-dashboard": {
+          label: "Home",
+          icon: '<path d="M4 11l8-7 8 7M6 10v10h12V10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+        },
+        "screen-monitor": {
+          label: "Monitor",
+          icon: '<path d="M3 12h4l2-8 4 16 2-8h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+        },
+        "screen-control": {
+          label: "Control",
+          icon: '<path d="M4 6h16M4 12h10M4 18h13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>',
+        },
+        "screen-camera": {
+          label: "Camera",
+          icon: '<path d="M4 8a2 2 0 012-2h2l1-2h6l1 2h2a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V8z" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="12" cy="13" r="3" stroke="currentColor" stroke-width="1.8" fill="none"/>',
+        },
+        "screen-stats": {
+          label: "Stats",
+          icon: '<rect x="4" y="12" width="3.2" height="8" rx="1" fill="currentColor"/><rect x="10.4" y="7" width="3.2" height="13" rx="1" fill="currentColor"/><rect x="16.8" y="3" width="3.2" height="17" rx="1" fill="currentColor"/>',
+        },
+        "screen-marketplace": {
+          label: "Market",
+          icon: '<path d="M4 9l1.2-4.4A1 1 0 016.2 4h11.6a1 1 0 011 .6L20 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M4 9h16v9a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 18V9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" fill="none"/><path d="M9 13.5a3 3 0 006 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/>',
+        },
+        "screen-settings": {
+          label: "Settings",
+          icon: '<circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7" fill="none"/><path d="M19 12a7 7 0 00-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 00-2-1.2L14 3h-4l-.6 2.6a7 7 0 00-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2L10 21h4l.6-2.6a7 7 0 002-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z" stroke="currentColor" stroke-width="1.3" fill="none"/>',
+        },
+      };
+      function buildNavBars() {
+        navScreens.forEach((sid) => {
+          const bar = document.getElementById(
+            "nav-" + sid.replace("screen-", ""),
+          );
+          if (!bar) return;
+          bar.innerHTML = navScreens
+            .map((target) => {
+              const m = navMeta[target];
+              const active = target === sid ? "active" : "";
+              return `<button class="nav-item ${active}" onclick="goto('${target}')"><svg viewBox="0 0 24 24">${m.icon}</svg><span>${m.label}</span></button>`;
+            })
+            .join("");
+        });
+      }
+      buildNavBars();
+
+      let current = "screen-loading";
+      function goto(id) {
+        if (id === current) return;
+        const from = document.getElementById(current);
+        const to = document.getElementById(id);
+        from.classList.remove("active");
+        from.classList.add("exit-left");
+        to.classList.remove("exit-left");
+        to.classList.add("active");
+        setTimeout(() => from.classList.remove("exit-left"), 400);
+        current = id;
+      }
+
+      /* ============ LOADING -> LOGIN ============ */
+      setTimeout(() => {
+        goto("screen-login");
+      }, 2600);
+
+      /* ============ AUTH HANDLERS ============ */
+      function handleLogin() {
+        const email = document.getElementById("login-email").value.trim();
+        const pass = document.getElementById("login-pass").value.trim();
+        const err = document.getElementById("login-error");
+        if (email.length > 3 && pass.length > 3) {
+          err.classList.remove("show");
+          goto("screen-dashboard");
+          fetchWeather();
+          tick();
+        } else {
+          err.classList.add("show");
+        }
+      }
+      function handleSignup() {
+        showToastGlobalScreen("screen-dashboard");
+        goto("screen-dashboard");
+        fetchWeather();
+        tick();
+      }
+      function showToastGlobalScreen() {
+        /* placeholder for consistency */
+      }
+
+      /* ============ NOTIFICATIONS PANEL ============ */
+      function openNotif() {
+        document.getElementById("notif-overlay").classList.add("show");
+      }
+      function closeNotif() {
+        document.getElementById("notif-overlay").classList.remove("show");
+      }
+      function closeNotifOutside(e) {
+        if (e.target.id === "notif-overlay") closeNotif();
+      }
+
+      /* ============ TOAST ============ */
+      let toastTimer;
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.innerText = msg;
+        t.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+      }
+
+      /* ============ SWITCHES / MODE / RANGE ============ */
+      function toggleSwitch(el, name) {
+        el.classList.toggle("on");
+        if (name)
+          showToast(
+            name + (el.classList.contains("on") ? " turned on" : " turned off"),
+          );
+      }
+      function setMode(el) {
+        el.parentElement
+          .querySelectorAll("button")
+          .forEach((b) => b.classList.remove("active"));
+        el.classList.add("active");
+        showToast("Switched to " + el.innerText + " mode");
+      }
+      function setRange(el) {
+        el.parentElement
+          .querySelectorAll("button")
+          .forEach((b) => b.classList.remove("active"));
+        el.classList.add("active");
+        drawCharts();
+      }
+      function setUnit(el) {
+        el.parentElement
+          .querySelectorAll("button")
+          .forEach((b) => b.classList.remove("active"));
+        el.classList.add("active");
+      }
+
+      /* ============ MARKETPLACE ============ */
+      function setMarketTab(el, tab) {
+        el.parentElement
+          .querySelectorAll("button")
+          .forEach((b) => b.classList.remove("active"));
+        el.classList.add("active");
+        document
+          .querySelectorAll(".market-tab-panel")
+          .forEach((p) => p.classList.remove("active"));
+        document.getElementById("market-tab-" + tab).classList.add("active");
+      }
+      function markShipped(btn) {
+        const card = btn.closest(".order-card");
+        const badge = card.querySelector(".order-status");
+        badge.textContent = "Shipped";
+        badge.className = "order-status shipped";
+        btn.remove();
+        const stat = document.getElementById("market-stat-orders");
+        stat.textContent = Math.max(0, parseInt(stat.textContent, 10) - 1);
+        showToast("Order marked as shipped");
+      }
+      function handleAddProduct() {
+        const name = document.getElementById("pa-name").value.trim();
+        const price = document.getElementById("pa-price").value.trim();
+        const stock = document.getElementById("pa-stock").value.trim();
+        const category = document.getElementById("pa-category").value.trim();
+        const unitBtn = document.querySelector("#pa-unit-toggle button.active");
+        const unit = unitBtn ? unitBtn.innerText : "Pack";
+        if (!name || !price) {
+          showToast("Add a product name and price first");
+          return;
+        }
+        const list = document.getElementById("product-list");
+        const card = document.createElement("div");
+        card.className = "product-card";
+        card.innerHTML = `
+    <div class="product-thumb"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 3c-3 4-6 7-6 11a6 6 0 0012 0c0-4-3-7-6-11z" stroke="#1f4636" stroke-width="1.5"/></svg></div>
+    <div class="product-info">
+      <div class="product-name">${name}</div>
+      <div class="product-meta">${category || "Uncategorized"} · per ${unit}</div>
+      <span class="stock-pill${stock && parseInt(stock, 10) === 0 ? " out" : stock && parseInt(stock, 10) < 10 ? " low" : ""}">${stock ? (parseInt(stock, 10) === 0 ? "Out of stock" : stock + " in stock") : "Stock not set"}</span>
+    </div>
+    <div class="product-price">₱${price}</div>`;
+        list.prepend(card);
+        const stat = document.getElementById("market-stat-products");
+        stat.textContent = parseInt(stat.textContent, 10) + 1;
+        ["pa-name", "pa-category", "pa-price", "pa-stock", "pa-desc"].forEach(
+          (id) => {
+            document.getElementById(id).value = "";
+          },
+        );
+        showToast("Product added to marketplace");
+        goto("screen-marketplace");
+        const productsTabBtn = document.querySelector(
+          "#screen-marketplace .mode-toggle button",
+        );
+        if (productsTabBtn) setMarketTab(productsTabBtn, "products");
+      }
+
+      /* ============ CAMERA CLOCK ============ */
+      function tick() {
+        const el = document.getElementById("cam-time");
+        if (el)
+          el.innerText = new Date().toLocaleTimeString("en-PH", {
+            hour12: false,
+          });
+        setTimeout(tick, 1000);
+      }
+
+      /* ============ CANVAS CHARTS ============ */
+      function genSeries(base, variance, points) {
+        let arr = [];
+        let v = base;
+        for (let i = 0; i < points; i++) {
+          v += (Math.random() - 0.5) * variance;
+          arr.push(v);
+        }
+        return arr;
+      }
+      function drawLineChart(id, data, color, unit) {
+        const canvas = document.getElementById(id);
+        if (!canvas) return;
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.clientWidth,
+          h = canvas.clientHeight || 140;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, w, h);
+        const min = Math.min(...data),
+          max = Math.max(...data);
+        const pad = 10;
+        const stepX = (w - pad * 2) / (data.length - 1);
+        const norm = (v) =>
+          h - pad - ((v - min) / (max - min || 1)) * (h - pad * 2);
+
+        // grid lines
+        ctx.strokeStyle = "rgba(61,37,0,0.10)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+          const y = pad + (i * (h - pad * 2)) / 3;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+        // fill area
+        ctx.beginPath();
+        ctx.moveTo(pad, norm(data[0]));
+        data.forEach((v, i) => ctx.lineTo(pad + i * stepX, norm(v)));
+        ctx.lineTo(pad + (data.length - 1) * stepX, h);
+        ctx.lineTo(pad, h);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, color + "33");
+        grad.addColorStop(1, color + "00");
+        ctx.fillStyle = grad;
+        ctx.fill();
+        // line
+        ctx.beginPath();
+        ctx.moveTo(pad, norm(data[0]));
+        data.forEach((v, i) => ctx.lineTo(pad + i * stepX, norm(v)));
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.lineJoin = "round";
+        ctx.stroke();
+        // last point dot
+        const lastX = pad + (data.length - 1) * stepX,
+          lastY = norm(data[data.length - 1]);
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 3.5, 0, 7);
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+      function drawCharts() {
+        drawLineChart("chart-temp", genSeries(24, 1.6, 24), "#1f4636");
+        drawLineChart("chart-humid", genSeries(87, 4, 24), "#3f7a63");
+        drawLineChart("chart-co2", genSeries(780, 120, 24), "#a8402c");
+      }
+      window.addEventListener("resize", drawCharts);
+      setTimeout(drawCharts, 50);
+    </script>
+  </body>
+</html>
